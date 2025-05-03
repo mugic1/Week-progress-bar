@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IST Clock with Weekly Progress</title>
+    <style>
+        /* Base styles optimized for Notion */
+        body {
+            margin: 0;
+            padding: 15px;
+            height: 450px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Clock styles */
+        .clock {
+            width: 180px;
+            height: 180px;
+            border: 6px solid #37352f;
+            border-radius: 50%;
+            position: relative;
+            margin: 0 auto;
+            background-color: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .clock-face {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .hand {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform-origin: 50% 100%;
+            border-radius: 4px;
+            transition: transform 0.3s cubic-bezier(0.4, 2.3, 0.3, 1);
+        }
+
+        .hour-hand {
+            width: 5px;
+            height: 45px;
+            margin-left: -2.5px;
+            background-color: #37352f;
+        }
+
+        .minute-hand {
+            width: 3px;
+            height: 65px;
+            margin-left: -1.5px;
+            background-color: #37352f;
+        }
+
+        .second-hand {
+            width: 2px;
+            height: 75px;
+            margin-left: -1px;
+            background-color: #e54d42;
+        }
+
+        .center-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            background-color: #37352f;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        .number {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 500;
+            color: #37352f;
+        }
+
+        .number span {
+            display: inline-block;
+            position: absolute;
+        }
+
+        /* Time display styles */
+        .time-display {
+            text-align: center;
+        }
+
+        .timezone {
+            font-size: 14px;
+            font-weight: 500;
+            color: #37352f;
+            margin-bottom: 5px;
+        }
+
+        .digital-time {
+            font-size: 16px;
+            font-weight: 600;
+            color: #37352f;
+            font-family: 'SF Mono', Menlo, monospace;
+        }
+
+        /* Progress bar styles */
+        .progress-container {
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #37352f;
+        }
+
+        .progress-bar {
+            height: 12px;
+            background-color: #f0f0f0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+
+        .week-days {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .day {
+            text-align: center;
+            width: 14%;
+        }
+
+        .current-day {
+            font-weight: bold;
+            color: #37352f;
+        }
+
+        /* Clock numbers positioning */
+        .number-12 { top: 8px; left: 50%; transform: translateX(-50%); }
+        .number-3 { top: 50%; right: 8px; transform: translateY(-50%); }
+        .number-6 { bottom: 8px; left: 50%; transform: translateX(-50%); }
+        .number-9 { top: 50%; left: 8px; transform: translateY(-50%); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="clock">
+            <div class="clock-face">
+                <div class="hand hour-hand"></div>
+                <div class="hand minute-hand"></div>
+                <div class="hand second-hand"></div>
+                <div class="center-circle"></div>
+                
+                <div class="number">
+                    <span class="number-12">12</span>
+                    <span class="number-3">3</span>
+                    <span class="number-6">6</span>
+                    <span class="number-9">9</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="time-display">
+            <div class="timezone">Indian Standard Time (IST)</div>
+            <div class="digital-time" id="digitalTime">00:00:00</div>
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-header">
+                <span>Week Progress</span>
+                <span id="weekProgress">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="week-days" id="weekDays"></div>
+        </div>
+    </div>
+
+    <script>
+        // Days of week for the progress bar
+        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        
+        // Initialize clock and progress bar
+        function updateAll() {
+            updateClock();
+            updateWeekProgress();
+            requestAnimationFrame(updateAll);
+        }
+        
+        // Clock function
+        function updateClock() {
+            // Get current time in Indian Standard Time (UTC+5:30)
+            const now = new Date();
+            const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+            const istOffset = 5.5 * 60 * 60000; // IST is UTC+5:30
+            const istTime = new Date(utc + istOffset);
+            
+            const hours = istTime.getHours();
+            const minutes = istTime.getMinutes();
+            const seconds = istTime.getSeconds();
+            
+            // Calculate degrees for clock hands
+            const hourDegrees = (hours % 12) * 30 + minutes * 0.5;
+            const minuteDegrees = minutes * 6 + seconds * 0.1;
+            const secondDegrees = seconds * 6;
+            
+            // Apply rotations
+            document.querySelector('.hour-hand').style.transform = `rotate(${hourDegrees}deg)`;
+            document.querySelector('.minute-hand').style.transform = `rotate(${minuteDegrees}deg)`;
+            document.querySelector('.second-hand').style.transform = `rotate(${secondDegrees}deg)`;
+            
+            // Update digital time display
+            const formattedHours = hours.toString().padStart(2, '0');
+            const formattedMinutes = minutes.toString().padStart(2, '0');
+            const formattedSeconds = seconds.toString().padStart(2, '0');
+            document.getElementById('digitalTime').textContent = 
+                `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+        }
+        
+        // Weekly progress function
+        function updateWeekProgress() {
+            const now = new Date();
+            const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+            const istOffset = 5.5 * 60 * 60000;
+            const istTime = new Date(utc + istOffset);
+            
+            const currentDay = istTime.getDay(); // 0 (Sun) to 6 (Sat)
+            const currentHour = istTime.getHours();
+            const currentMinute = istTime.getMinutes();
+            
+            // Calculate progress through the week (Monday 00:00 to Sunday 23:59)
+            let daysPassed = currentDay - 1; // Days since Monday
+            if (daysPassed < 0) daysPassed = 6; // It's Sunday
+            
+            const dayProgress = (currentHour * 60 + currentMinute) / (24 * 60);
+            const totalProgress = (daysPassed + dayProgress) / 7;
+            
+            // Update progress bar
+            const progressPercent = Math.round(totalProgress * 100);
+            document.getElementById('progressFill').style.width = `${progressPercent}%`;
+            document.getElementById('weekProgress').textContent = `${progressPercent}%`;
+            
+            // Update day markers
+            const weekDaysContainer = document.getElementById('weekDays');
+            weekDaysContainer.innerHTML = '';
+            
+            daysOfWeek.forEach((day, index) => {
+                const dayElement = document.createElement('div');
+                dayElement.className = `day ${index === currentDay ? 'current-day' : ''}`;
+                dayElement.textContent = day;
+                weekDaysContainer.appendChild(dayElement);
+            });
+        }
+        
+        // Initialize day markers and start updates
+        updateWeekProgress();
+        updateAll();
+    </script>
+</body>
+</html>
